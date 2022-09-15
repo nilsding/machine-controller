@@ -147,6 +147,39 @@ tags:
   tagKey: tagValue
 ```
 
+## OpenNebula
+
+### machine.spec.providerConfig.cloudProviderSpec
+
+```yaml
+# XML-RPC endpoint of your OpenNebula installation
+endpoint: ""
+# your OpenNebula username
+username: ""
+# your OpenNebula password
+password: ""
+
+# cpu (float64)
+cpu: 1
+# vcpu
+vcpu: 2
+# memory in MB
+memory: 1024
+
+# the name of the image to use
+image: "Amazon Linux 2"
+# which datastore to use for the image
+datastore: ""
+# size of the disk in MB
+diskSize: 51200
+
+# network name
+network: ""
+
+# whether to enable the VNC console
+enableVNC: true
+```
+
 ## Google Cloud Platform
 
 ### machine.spec.providerConfig.cloudProviderSpec
