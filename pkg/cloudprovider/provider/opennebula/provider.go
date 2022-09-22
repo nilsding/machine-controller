@@ -344,7 +344,7 @@ func (i *openNebulaInstance) Addresses() map[string]v1.NodeAddressType {
 		addresses[ip] = v1.NodeInternalIP
 	}
 
-	return nil
+	return addresses
 }
 
 func (i *openNebulaInstance) Status() instance.Status {
