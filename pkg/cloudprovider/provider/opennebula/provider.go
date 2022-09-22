@@ -195,7 +195,7 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	tpl.AddCtx(keys.SSHPubKey, "$USER[SSH_PUBLIC_KEY]")
 
 	tpl.AddCtx(machineUidContextKey, string(machine.UID))
-	tpl.AddCtx("USER_DATA", userdata)
+	tpl.AddCtx("USER_DATA", strings.ReplaceAll(userdata, "$", "\\$")) // need to escape $ signs as this is special in opennebula templates
 
 	controller := goca.NewController(client)
 
