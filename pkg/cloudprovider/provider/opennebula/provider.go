@@ -341,7 +341,7 @@ func (i *openNebulaInstance) Addresses() map[string]v1.NodeAddressType {
 
 	for _, nic := range i.vm.Template.GetNICs() {
 		ip, _ := nic.Get(shared.IP)
-		addresses[ip] = v1.NodeExternalIP
+		addresses[ip] = v1.NodeInternalIP
 	}
 
 	return nil
