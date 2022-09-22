@@ -18,6 +18,7 @@ package opennebula
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -195,7 +196,8 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	tpl.AddCtx(keys.SSHPubKey, "$USER[SSH_PUBLIC_KEY]")
 
 	tpl.AddCtx(machineUidContextKey, string(machine.UID))
-	tpl.AddCtx("USER_DATA", strings.ReplaceAll(userdata, "$", "\\$")) // need to escape $ signs as this is special in opennebula templates
+	tpl.AddCtx("USER_DATA", base64.StdEncoding.EncodeToString([]byte(userdata)))
+	tpl.AddCtx("USER_DATA_ENCODING", "base64")
 
 	controller := goca.NewController(client)
 
