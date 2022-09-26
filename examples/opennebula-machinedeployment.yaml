@@ -50,8 +50,6 @@ spec:
             memory: 1024
 
             image: "Amazon Linux 2"
-            # device prefix (e.g. "vd" or "sd")
-            devPrefix: "vd"
             datastore: "<< YOUR_DATASTORE_NAME >>"
             diskSize: 51200 # MB
 

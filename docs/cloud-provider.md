@@ -166,16 +166,14 @@ vcpu: 2
 # memory in MB
 memory: 1024
 
-# the name of the image to use
+# the name of the image to use, needs to be owned by the current user
 image: "Amazon Linux 2"
-# device prefix (e.g. "vd" or "sd")
-devPrefix: "vd"
 # which datastore to use for the image
 datastore: ""
 # size of the disk in MB
 diskSize: 51200
 
-# network name
+# network name, needs to be owned by the current user
 network: ""
 
 # whether to enable the VNC console
