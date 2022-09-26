@@ -71,6 +71,7 @@ type Config struct {
 	Vcpu      *int
 	Memory    *int
 	Image     string
+	DevPrefix string
 	Datastore string
 	DiskSize  *int
 	Network   string
@@ -119,6 +120,11 @@ func (p *provider) getConfig(provSpec clusterv1alpha1.ProviderSpec) (*Config, *p
 	c.Memory = rawConfig.Memory
 
 	c.Image, err = p.configVarResolver.GetConfigVarStringValue(rawConfig.Image)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	c.DevPrefix, err = p.configVarResolver.GetConfigVarStringValue(rawConfig.DevPrefix)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -180,8 +186,8 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	disk := tpl.AddDisk()
 	disk.Add(shared.Image, c.Image)
 	disk.Add(shared.Datastore, c.Datastore)
-	disk.Add(shared.DevPrefix, "vd")
-	disk.Add(shared.Size, c.DiskSize)
+	disk.Add(shared.DevPrefix, c.DevPrefix)
+	disk.Add(shared.Size, *c.DiskSize)
 
 	nic := tpl.AddNIC()
 	nic.Add(shared.Network, c.Network)

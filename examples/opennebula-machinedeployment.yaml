@@ -7,7 +7,6 @@ metadata:
   namespace: kube-system
 type: Opaque
 stringData:
-  username: << ONE_USERNAME >>
   password: << ONE_PASSWORD >>
 ---
 apiVersion: "cluster.k8s.io/v1alpha1"
@@ -39,12 +38,8 @@ spec:
           cloudProvider: "opennebula"
           cloudProviderSpec:
             endpoint: "<< ONE_ENDPOINT including '/RPC2' >>"
-            # If empty, can be set via ONE_USERNAME/ONE_PASSWORD env var
-            username:
-              secretKeyRef:
-                namespace: kube-system
-                name: machine-controller-opennebula
-                key: username
+            username: "<< ONE_USERNAME >>"
+            # If empty, can be set via ONE_PASSWORD env var
             password:
               secretKeyRef:
                 namespace: kube-system
@@ -55,6 +50,8 @@ spec:
             memory: 1024
 
             image: "Amazon Linux 2"
+            # device prefix (e.g. "vd" or "sd")
+            devPrefix: "vd"
             datastore: "<< YOUR_DATASTORE_NAME >>"
             diskSize: 51200 # MB
 

@@ -168,6 +168,8 @@ memory: 1024
 
 # the name of the image to use
 image: "Amazon Linux 2"
+# device prefix (e.g. "vd" or "sd")
+devPrefix: "vd"
 # which datastore to use for the image
 datastore: ""
 # size of the disk in MB

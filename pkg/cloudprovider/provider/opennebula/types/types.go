@@ -32,6 +32,7 @@ type RawConfig struct {
 	Vcpu      *int                                `json:"vcpu"`
 	Memory    *int                                `json:"memory"`
 	Image     providerconfigtypes.ConfigVarString `json:"image"`
+	DevPrefix providerconfigtypes.ConfigVarString `json:"devPrefix"`
 	Datastore providerconfigtypes.ConfigVarString `json:"datastore"`
 	DiskSize  *int                                `json:"diskSize"`
 	Network   providerconfigtypes.ConfigVarString `json:"network"`
