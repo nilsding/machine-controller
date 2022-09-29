@@ -178,6 +178,11 @@ network: ""
 
 # whether to enable the VNC console
 enableVNC: true
+
+# optional key/value pairs to add to the VM template
+vmTemplateExtra:
+  # useful for e.g. setting the placement attributes as defined in https://docs.opennebula.io/6.4/management_and_operations/references/template.html#template-placement-section
+  SCHED_REQUIREMENTS: 'RACK="G4"'
 ```
 
 ## Google Cloud Platform

@@ -56,6 +56,10 @@ spec:
             network: "<< YOUR_NETWORK_NAME >>"
 
             enableVNC: true
+
+            # if you want to have more control over e.g. placement of the VM you can do this:
+            #vmTemplateExtra:
+            #  SCHED_REQUIREMENTS: 'RACK="G4"'
           operatingSystem: "amzn2"
           operatingSystemSpec:
             distUpgradeOnBoot: false

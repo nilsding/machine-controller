@@ -28,14 +28,15 @@ type RawConfig struct {
 	Endpoint providerconfigtypes.ConfigVarString `json:"endpoint,omitempty"`
 
 	// Machine details
-	Cpu       *float64                            `json:"cpu"`
-	Vcpu      *int                                `json:"vcpu"`
-	Memory    *int                                `json:"memory"`
-	Image     providerconfigtypes.ConfigVarString `json:"image"`
-	Datastore providerconfigtypes.ConfigVarString `json:"datastore"`
-	DiskSize  *int                                `json:"diskSize"`
-	Network   providerconfigtypes.ConfigVarString `json:"network"`
-	EnableVNC providerconfigtypes.ConfigVarBool   `json:"enableVNC"`
+	Cpu             *float64                            `json:"cpu"`
+	Vcpu            *int                                `json:"vcpu"`
+	Memory          *int                                `json:"memory"`
+	Image           providerconfigtypes.ConfigVarString `json:"image"`
+	Datastore       providerconfigtypes.ConfigVarString `json:"datastore"`
+	DiskSize        *int                                `json:"diskSize"`
+	Network         providerconfigtypes.ConfigVarString `json:"network"`
+	EnableVNC       providerconfigtypes.ConfigVarBool   `json:"enableVNC"`
+	VMTemplateExtra map[string]string                   `json:"vmTemplateExtra,omitempty"`
 }
 
 func GetConfig(pconfig providerconfigtypes.Config) (*RawConfig, error) {

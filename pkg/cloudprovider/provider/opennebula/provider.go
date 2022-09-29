@@ -67,14 +67,15 @@ type Config struct {
 	Endpoint string
 
 	// Machine details
-	Cpu       *float64
-	Vcpu      *int
-	Memory    *int
-	Image     string
-	Datastore string
-	DiskSize  *int
-	Network   string
-	EnableVNC bool
+	Cpu             *float64
+	Vcpu            *int
+	Memory          *int
+	Image           string
+	Datastore       string
+	DiskSize        *int
+	Network         string
+	EnableVNC       bool
+	VMTemplateExtra map[string]string
 }
 
 func getClient(config *Config) *goca.Client {
@@ -140,6 +141,8 @@ func (p *provider) getConfig(provSpec clusterv1alpha1.ProviderSpec) (*Config, *p
 		return nil, nil, err
 	}
 
+	c.VMTemplateExtra = rawConfig.VMTemplateExtra
+
 	return &c, pconfig, err
 }
 
@@ -174,6 +177,12 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 
 	// build a template
 	tpl := vm.NewTemplate()
+
+	// add extra template vars first
+	for key, value := range c.VMTemplateExtra {
+		tpl.Add(keys.Template(key), value)
+	}
+
 	tpl.Add(keys.Name, machine.Spec.Name)
 	tpl.CPU(*c.Cpu).Memory(*c.Memory).VCPU(*c.Vcpu)
 
