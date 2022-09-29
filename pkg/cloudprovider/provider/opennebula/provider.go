@@ -306,7 +306,57 @@ func (p *provider) AddDefaults(spec clusterv1alpha1.MachineSpec) (clusterv1alpha
 }
 
 func (p *provider) MigrateUID(ctx context.Context, machine *clusterv1alpha1.Machine, newUID types.UID) error {
-	// TODO: implement this
+	c, _, err := p.getConfig(machine.Spec.ProviderSpec)
+	if err != nil {
+		return cloudprovidererrors.TerminalError{
+			Reason:  common.InvalidConfigurationMachineError,
+			Message: fmt.Sprintf("Failed to parse MachineSpec, due to %v", err),
+		}
+	}
+
+	instance, err := p.Get(ctx, machine, nil)
+	if err != nil {
+		return cloudprovidererrors.TerminalError{
+			Reason:  common.InvalidConfigurationMachineError,
+			Message: fmt.Sprintf("Failed to get instance, due to %v", err),
+		}
+	}
+
+	client := getClient(c)
+
+	// get current template
+	tpl := &instance.(*openNebulaInstance).vm.Template
+	contextVector, err := tpl.GetVector(keys.ContextVec)
+	if err != nil {
+		return cloudprovidererrors.TerminalError{
+			Reason:  common.InvalidConfigurationMachineError,
+			Message: fmt.Sprintf("Failed to get VM template context vector, due to %v", err),
+		}
+	}
+
+	// replace the old uid in context with the new one
+	contextVector.Del(machineUidContextKey)
+	contextVector.AddPair(machineUidContextKey, string(newUID))
+
+	// create a new template that only has the context vector in it so it gets properly replaced
+	tpl = vm.NewTemplate()
+	for _, pair := range contextVector.Pairs {
+		key := pair.XMLName.Local
+		value := pair.Value
+		tpl.AddCtx(keys.Context(key), value)
+	}
+
+	// finally, update the VM template
+	controller := goca.NewController(client)
+	vmCtrl := controller.VM(instance.(*openNebulaInstance).vm.ID)
+	err = vmCtrl.UpdateConf(tpl.String())
+	if err != nil {
+		return cloudprovidererrors.TerminalError{
+			Reason:  common.InvalidConfigurationMachineError,
+			Message: fmt.Sprintf("Failed to update VM template, due to %v", err),
+		}
+	}
+
 	return nil
 }
 
@@ -331,7 +381,6 @@ func (i *openNebulaInstance) ID() string {
 }
 
 func (i *openNebulaInstance) ProviderID() string {
-	// ??? where does this get used?
 	return "opennebula://" + strconv.Itoa(i.vm.ID)
 }
 
