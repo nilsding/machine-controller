@@ -212,19 +212,19 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	// create VM from the generated template above
 	vmID, err := controller.VMs().Create(tpl.String(), false)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create VM: %w", err)
 	}
 
 	vm, err := controller.VM(vmID).Info(false)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to fetch VM information: %w", err)
 	}
 
 	return &openNebulaInstance{vm}, nil
 }
 
 func (p *provider) Cleanup(ctx context.Context, machine *clusterv1alpha1.Machine, data *cloudprovidertypes.ProviderData) (bool, error) {
-	instance, err := p.Get(ctx, machine, data)
+	instance, err := p.get(machine)
 	if err != nil {
 		if errors.Is(err, cloudprovidererrors.ErrInstanceNotFound) {
 			return true, nil
@@ -243,7 +243,7 @@ func (p *provider) Cleanup(ctx context.Context, machine *clusterv1alpha1.Machine
 	client := getClient(c)
 	controller := goca.NewController(client)
 
-	vmctrl := controller.VM(instance.(*openNebulaInstance).vm.ID)
+	vmctrl := controller.VM(instance.vm.ID)
 	err = vmctrl.TerminateHard()
 	// ignore error of nonexistent machines by matching for "NO_EXISTS", the error string is something like "OpenNebula error [NO_EXISTS]: [one.vm.action] Error getting virtual machine [999914743]."
 	if err != nil && !strings.Contains(err.Error(), "NO_EXISTS") {
@@ -257,6 +257,10 @@ func (p *provider) Cleanup(ctx context.Context, machine *clusterv1alpha1.Machine
 }
 
 func (p *provider) Get(_ context.Context, machine *clusterv1alpha1.Machine, _ *cloudprovidertypes.ProviderData) (instance.Instance, error) {
+	return p.get(machine)
+}
+
+func (p *provider) get(machine *clusterv1alpha1.Machine) (*openNebulaInstance, error) {
 	c, _, err := p.getConfig(machine.Spec.ProviderSpec)
 	if err != nil {
 		return nil, cloudprovidererrors.TerminalError{
@@ -323,7 +327,7 @@ func (p *provider) MigrateUID(ctx context.Context, machine *clusterv1alpha1.Mach
 		}
 	}
 
-	instance, err := p.Get(ctx, machine, nil)
+	instance, err := p.get(machine)
 	if err != nil {
 		return cloudprovidererrors.TerminalError{
 			Reason:  common.InvalidConfigurationMachineError,
@@ -334,7 +338,7 @@ func (p *provider) MigrateUID(ctx context.Context, machine *clusterv1alpha1.Mach
 	client := getClient(c)
 
 	// get current template
-	tpl := &instance.(*openNebulaInstance).vm.Template
+	tpl := &instance.vm.Template
 	contextVector, err := tpl.GetVector(keys.ContextVec)
 	if err != nil {
 		return cloudprovidererrors.TerminalError{
@@ -357,7 +361,7 @@ func (p *provider) MigrateUID(ctx context.Context, machine *clusterv1alpha1.Mach
 
 	// finally, update the VM template
 	controller := goca.NewController(client)
-	vmCtrl := controller.VM(instance.(*openNebulaInstance).vm.ID)
+	vmCtrl := controller.VM(instance.vm.ID)
 	err = vmCtrl.UpdateConf(tpl.String())
 	if err != nil {
 		return cloudprovidererrors.TerminalError{
