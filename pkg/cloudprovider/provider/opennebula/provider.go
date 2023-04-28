@@ -206,6 +206,7 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	tpl.AddCtx(machineUidContextKey, string(machine.UID))
 	tpl.AddCtx("USER_DATA", base64.StdEncoding.EncodeToString([]byte(userdata)))
 	tpl.AddCtx("USER_DATA_ENCODING", "base64")
+	tpl.AddCtx("SET_HOSTNAME", machine.Spec.Name)
 
 	controller := goca.NewController(client)
 
