@@ -52,7 +52,7 @@ type CloudProviderSpec struct {
 }
 
 const (
-	machineUidContextKey = "K8S_MACHINE_UID"
+	machineUIDContextKey = "K8S_MACHINE_UID"
 )
 
 // New returns a OpenNebula provider.
@@ -67,8 +67,8 @@ type Config struct {
 	Endpoint string
 
 	// Machine details
-	Cpu             *float64
-	Vcpu            *int
+	CPU             *float64
+	VCPU            *int
 	Memory          *int
 	Image           string
 	Datastore       string
@@ -113,9 +113,9 @@ func (p *provider) getConfig(provSpec clusterv1alpha1.ProviderSpec) (*Config, *p
 		return nil, nil, fmt.Errorf("failed to get the value of \"endpoint\" field, error = %w", err)
 	}
 
-	c.Cpu = rawConfig.Cpu
+	c.CPU = rawConfig.CPU
 
-	c.Vcpu = rawConfig.Vcpu
+	c.VCPU = rawConfig.VCPU
 
 	c.Memory = rawConfig.Memory
 
@@ -146,7 +146,7 @@ func (p *provider) getConfig(provSpec clusterv1alpha1.ProviderSpec) (*Config, *p
 	return &c, pconfig, err
 }
 
-func (p *provider) Validate(ctx context.Context, spec clusterv1alpha1.MachineSpec) error {
+func (p *provider) Validate(_ context.Context, spec clusterv1alpha1.MachineSpec) error {
 	_, pc, err := p.getConfig(spec.ProviderSpec)
 	if err != nil {
 		return fmt.Errorf("failed to parse config: %w", err)
@@ -154,7 +154,7 @@ func (p *provider) Validate(ctx context.Context, spec clusterv1alpha1.MachineSpe
 
 	opennebulaCloudProviderSpec := CloudProviderSpec{}
 	if err = json.Unmarshal(pc.CloudProviderSpec.Raw, &opennebulaCloudProviderSpec); err != nil {
-		return err
+		return fmt.Errorf("failed to parse cloud provider spec: %w", err)
 	}
 
 	return nil
@@ -164,7 +164,7 @@ func (p *provider) GetCloudConfig(_ clusterv1alpha1.MachineSpec) (string, string
 	return "", "", nil
 }
 
-func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine, data *cloudprovidertypes.ProviderData, userdata string) (instance.Instance, error) {
+func (p *provider) Create(_ context.Context, machine *clusterv1alpha1.Machine, data *cloudprovidertypes.ProviderData, userdata string) (instance.Instance, error) {
 	c, _, err := p.getConfig(machine.Spec.ProviderSpec)
 	if err != nil {
 		return nil, cloudprovidererrors.TerminalError{
@@ -184,7 +184,7 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	}
 
 	tpl.Add(keys.Name, machine.Spec.Name)
-	tpl.CPU(*c.Cpu).Memory(*c.Memory).VCPU(*c.Vcpu)
+	tpl.CPU(*c.CPU).Memory(*c.Memory).VCPU(*c.VCPU)
 
 	disk := tpl.AddDisk()
 	disk.Add(shared.Image, c.Image)
@@ -196,17 +196,41 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	nic.Add(shared.Model, "virtio")
 
 	if c.EnableVNC {
-		tpl.AddIOGraphic(keys.GraphicType, "VNC")
-		tpl.AddIOGraphic(keys.Listen, "0.0.0.0")
+		err = tpl.AddIOGraphic(keys.GraphicType, "VNC")
+		if err != nil {
+			return nil, fmt.Errorf("failed to add graphic type to iographic in template: %w", err)
+		}
+		err = tpl.AddIOGraphic(keys.Listen, "0.0.0.0")
+		if err != nil {
+			return nil, fmt.Errorf("failed to add listen address to iographic in template: %w", err)
+		}
 	}
 
-	tpl.AddCtx(keys.NetworkCtx, "YES")
-	tpl.AddCtx(keys.SSHPubKey, "$USER[SSH_PUBLIC_KEY]")
+	err = tpl.AddCtx(keys.NetworkCtx, "YES")
+	if err != nil {
+		return nil, fmt.Errorf("failed to add network to context in template: %w", err)
+	}
+	err = tpl.AddCtx(keys.SSHPubKey, "$USER[SSH_PUBLIC_KEY]")
+	if err != nil {
+		return nil, fmt.Errorf("failed to add SSH public key to context in template: %w", err)
+	}
 
-	tpl.AddCtx(machineUidContextKey, string(machine.UID))
-	tpl.AddCtx("USER_DATA", base64.StdEncoding.EncodeToString([]byte(userdata)))
-	tpl.AddCtx("USER_DATA_ENCODING", "base64")
-	tpl.AddCtx("SET_HOSTNAME", machine.Spec.Name)
+	err = tpl.AddCtx(machineUIDContextKey, string(machine.UID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to add machine UID to context in template: %w", err)
+	}
+	err = tpl.AddCtx("USER_DATA", base64.StdEncoding.EncodeToString([]byte(userdata)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to add user data to context in template: %w", err)
+	}
+	err = tpl.AddCtx("USER_DATA_ENCODING", "base64")
+	if err != nil {
+		return nil, fmt.Errorf("failed to add user data encoding to context in template: %w", err)
+	}
+	err = tpl.AddCtx("SET_HOSTNAME", machine.Spec.Name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add desired hostname to context in template: %w", err)
+	}
 
 	controller := goca.NewController(client)
 
@@ -224,7 +248,7 @@ func (p *provider) Create(ctx context.Context, machine *clusterv1alpha1.Machine,
 	return &openNebulaInstance{vm}, nil
 }
 
-func (p *provider) Cleanup(ctx context.Context, machine *clusterv1alpha1.Machine, data *cloudprovidertypes.ProviderData) (bool, error) {
+func (p *provider) Cleanup(_ context.Context, machine *clusterv1alpha1.Machine, data *cloudprovidertypes.ProviderData) (bool, error) {
 	instance, err := p.get(machine)
 	if err != nil {
 		if errors.Is(err, cloudprovidererrors.ErrInstanceNotFound) {
@@ -301,7 +325,7 @@ func (p *provider) get(machine *clusterv1alpha1.Machine) (*openNebulaInstance, e
 			}
 		}
 
-		uid, err := vm.Template.GetCtx(machineUidContextKey)
+		uid, err := vm.Template.GetCtx(machineUIDContextKey)
 		if err != nil {
 			// ignore errors like "key blabla not found"
 			continue
@@ -349,15 +373,21 @@ func (p *provider) MigrateUID(ctx context.Context, machine *clusterv1alpha1.Mach
 	}
 
 	// replace the old uid in context with the new one
-	contextVector.Del(machineUidContextKey)
-	contextVector.AddPair(machineUidContextKey, string(newUID))
+	contextVector.Del(machineUIDContextKey)
+	err = contextVector.AddPair(machineUIDContextKey, string(newUID))
+	if err != nil {
+		return fmt.Errorf("failed to add the new machine UID to context in template: %w", err)
+	}
 
 	// create a new template that only has the context vector in it so it gets properly replaced
 	tpl = vm.NewTemplate()
 	for _, pair := range contextVector.Pairs {
 		key := pair.XMLName.Local
 		value := pair.Value
-		tpl.AddCtx(keys.Context(key), value)
+		err = tpl.AddCtx(keys.Context(key), value)
+		if err != nil {
+			return fmt.Errorf("failed to add %s to context in template: %w", key, err)
+		}
 	}
 
 	// finally, update the VM template
